@@ -10,35 +10,46 @@ This assignment simulates a real-world DevOps tasks that automated deployment fl
 - CI/CD pipeline using GitHub Actions to build and push the Docker image to DockerHub.
 - Kubernetes manifests for production deployment.
 
-## How It Works
+## How the Automation Works
 
-1. **Infrastructure Provisioning and Configuration(AWS)**: 
+1. **Infrastructure Provisioning and Configuration(AWS)**:
+
 Run `terraform apply` in the `terraform/` directory to provision an EC2 instance and security group.
 - Note: my_ip is defined as variables and can be overcome through terraform.tfvars or using command
--- terraform apply -var "my_ip=your_ip"
-Run `ansible-playbook -i inventory.ini playbook.yml` in the `ansible/` directory to install Docker and deploy the container.
+  terraform apply -var "my_ip=your_ip"
 
-2. **Application Containerization and CI/CD Pipeline**: 
+Run `ansible-playbook -i inventory.ini playbook.yml` in the `ansible/` directory to install Docker, configure the EC2 instance, pull the latest application image and runs the container with environment variables and logging.
+- Note: Replace 'image: myusername/myapp:latest' with the real DockerHub repo.
+
+2. **Application Containerization and CI/CD Pipeline**:
+
 Pushing to the `main` branch triggers the GitHub Actions workflow to build and push the Docker image.
+- Note: DOCKERHUB_USERNAME and DOCKERHUB_TOKEN are GitHub secrets
 
-3. **Baseline Observability**:
-- **Logging**: Docker uses the `json-file` driver; logs are stored at `/var/lib/docker/containers/[container-id]/[container-id]-json.log` on the EC2 instance.
+4. **Baseline Observability**:
+
+- **Logging**: Docker uses the `json-file` driver; logs are stored at `/var/lib/docker/containers/[container-id]/[container-id]-json.log` on the EC2 instance with max size of 10MB and up to 3 files.
+
 - **Monitoring (Suggested)**: Use `curl http://localhost` for health checks (the Prometheus node-exporter for metrics does not implemented).
 
 4. **Security Best Practices**:
 
+- SSH access restricted to a specified IP in the security group.
+- Only ports 22 (SSH) and 80 (HTTP) are open.
 
-Optional Bonus: **Kubernetes Deployment**:
+Optional Bonus. **Kubernetes Deployment**:
 
+Deploys the application to Kubernetes with environment variables and health probes, exposed via a LoadBalancer service.
 
 
 ## Application Configuration
 - Environment variables (`APP_ENV`, `APP_SECRET`) are injected into the Docker container via Ansible's `docker_container` module.
 
+## Observability suggestion
+- Docker logging configured for application logs with max size of 10MB and up to 3 files.
+- Monitoring health check through 'curl http://localhost' or/and Prometheus implementation with choosen metrics.
 
-## Security Considerations
-- SSH access restricted to a specified IP in the security group.
-- Only ports 22 (SSH) and 80 (HTTP) are open.
+## Key Security Considerations
 - Secrets can be passed as environment variables for a Simulation, for Production we should use Ansible Vault or AWS Secrets Manager. 
 
 ## Assumptions and Decisions
